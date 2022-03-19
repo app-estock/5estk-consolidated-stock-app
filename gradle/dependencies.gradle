@@ -1,0 +1,24 @@
+ext{
+    versions = [:]
+    libraries = [:]
+}
+
+versions.swagger2 ="2.9.2"
+versions.logbackclassics ="1.2.3"
+versions.logbackjson="0.1.5"
+versions.logbackjackson="0.1.5"
+versions.janino="3.8.0"
+
+
+
+//Implementation
+libraries.swagger2=[
+        "io.springfox:springfox-swagger-ui:${versions.swagger2}",
+        "io.springfox:springfox-swagger2:${versions.swagger2}"
+]
+libraries.logback=[
+                "ch.qos.logback:logback-classic:${versions.logbackclassics}",
+                "ch.qos.logback.contrib:logback-json-classic:${versions.logbackjson}",
+                "ch.qos.logback.contrib:logback-jackson:${versions.logbackjackson}",
+                "org.codehaus.janino:janino:${versions.janino}"
+]

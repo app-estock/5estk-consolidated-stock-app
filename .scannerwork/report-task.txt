@@ -1,0 +1,6 @@
+projectKey=5estk-consolidated-stock-app
+serverUrl=http://localhost:9000
+serverVersion=9.3.0.51899
+dashboardUrl=http://localhost:9000/dashboard?id=5estk-consolidated-stock-app
+ceTaskId=AX-kOU_A6M56iBsUrNAD
+ceTaskUrl=http://localhost:9000/api/ce/task?id=AX-kOU_A6M56iBsUrNAD

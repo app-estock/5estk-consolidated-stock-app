@@ -5,10 +5,11 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
-import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+
 
 @SpringBootApplication
-@EnableMongoRepositories("com.market.stock.dao.repository")
+@EnableJpaRepositories(basePackages = "com.market.stock.dao")
 public class StockApplication {
 	@Bean
 	public FilterRegistrationBean jwtFilter(){

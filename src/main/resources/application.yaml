@@ -1,26 +1,15 @@
 spring:
-  kafka:
-    consumer:
-      bootstrap-server: localhost:9092
-      group-id: estock-logs
-      auto-offset-reset: earliest
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-    producer:
-      bootstrap-servers: localhost:9092
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.apache.kafka.common.serialization.StringSerializer
-      topic-name: estock-logs
   application:
-          name: StockV1
-  data:
-    mongodb:
-        uri: mongodb://localhost:27017/stockmarket
+    name: StockV1
+  datasource:
+    username: ${RDS_USERNAME:root}
+    password: ${RDS_PASSWORD:Maxak351#}
+    url: jdbc:mysql://${RDS_HOSTNAME:localhost}:${RDS_PORT:3306}/${RDS_DB_NAME:stockmarket}
+    driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: false
-
+    show-sql: true
 server:
   port: 8083
 

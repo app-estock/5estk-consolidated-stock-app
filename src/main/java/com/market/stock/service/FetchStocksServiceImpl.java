@@ -8,40 +8,35 @@ import com.market.stock.common.CommonUtility;
 import com.market.stock.common.headers.Headers;
 import com.market.stock.common.logging.TransactionLog;
 import com.market.stock.dao.entities.Stock;
-import com.market.stock.dao.repository.StockRepository;
+import com.market.stock.dao.StockRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Service;
 
 import java.text.ParseException;
-import java.time.LocalDate;
 import java.util.*;
-import java.util.stream.Collectors;
 
-import static org.springframework.data.mongodb.core.query.Criteria.where;
-import static org.springframework.data.mongodb.core.query.Query.query;
+
 
 @Service
 public class FetchStocksServiceImpl implements FetchStocksService {
     @Autowired
-    private StockRepository stockRepository;
+    private  StockRepository stockRepository;
+
     private List<ErrorMessage> estkErrorList;
     private static final Logger logger = LoggerFactory.getLogger(FetchStocksServiceImpl.class);
     private TransactionLog transactionLog;
-    @Autowired
-    private Producer producer;
-    @Autowired
-    public MongoTemplate mongoTemplate;
+
+
 
     @Override
     public StockResponse processRequest(String companycode, Date startDate, Date endDate, Headers requestHeaders) throws ParseException {
 
         estkErrorList = new ArrayList<>();
-        transactionLog = new TransactionLog("fetchStocksV1", "fetchStocksV1", "Service");
+        transactionLog = new TransactionLog("StocksV1", "fetchStocksV1", "Service");
         Map<String, String> extendedProperties = new HashMap<>();
-        List<Stock> filteredList;
+
         //region transaction log population
         String methodName = new Object() {}.getClass().getEnclosingMethod().getName();
         transactionLog.setMethodName(methodName);
@@ -53,10 +48,9 @@ public class FetchStocksServiceImpl implements FetchStocksService {
         transactionLog.setCreationTimeStamp(requestHeaders.getEstk_creationtimestamp());
         //endregion
      try {
-         List<Stock> listOfStock = stockRepository.findByCompanyCode(companycode);
-         filteredList  = listOfStock.stream().filter(d -> d.getCreatedDate().after(startDate) && d.getCreatedDate().before(endDate)).collect(Collectors.toList());
+         List<Stock>listOfStock=findStockPricesforACompany(companycode,endDate,startDate);
          transactionLog.setStatus(AppConstants.SUCCESS);
-         return mapStockResponse(filteredList);
+         return mapStockResponse(listOfStock);
      }
      catch (Exception e)
      {
@@ -65,7 +59,7 @@ public class FetchStocksServiceImpl implements FetchStocksService {
      finally{
 
          logger.info(transactionLog.toString());
-         producer.sendMessage(transactionLog.toString());
+
      }
 
 
@@ -83,9 +77,7 @@ public class FetchStocksServiceImpl implements FetchStocksService {
        return  new StockResponse(stockPriceDetailList, CommonUtility.getMaxPrice(stockPriceDetailList),CommonUtility.getMinPrice(stockPriceDetailList),CommonUtility.getAvgPrice(stockPriceDetailList),null);
     }
 
-    public List<Stock> findStockPricesforACompany(String companycode, LocalDate endDate, LocalDate startDate) {
-        return mongoTemplate.find(query(where("companycode").is(companycode)
-                .and("createdDate").lte(endDate)
-                .and("end_date").gte(startDate)), Stock.class);
+    public List<Stock> findStockPricesforACompany(String companycode, Date endDate, Date startDate) {
+        return stockRepository.findStockByCompanyCodeAndCreatedDateBetween(companycode,startDate,endDate);
     }
 }

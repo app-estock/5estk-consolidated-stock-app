@@ -2,15 +2,17 @@ package com.market.stock.service;
 
 import com.market.stock.api.ErrorMessage;
 import com.market.stock.api.StockResponse;
+import com.market.stock.common.AppConstants;
 import com.market.stock.common.headers.Headers;
 import com.market.stock.common.logging.TransactionLog;
 import com.market.stock.dao.entities.Stock;
-import com.market.stock.dao.repository.StockRepository;
+import com.market.stock.dao.StockRepository;
 import com.market.stock.dao.sac.UpdateStockService;
 import com.market.stock.domain.mapper.StockMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -20,6 +22,7 @@ import java.util.Map;
 
 @Service
 public class AddStockServiceImpl implements AddStockService {
+
     @Autowired
     private StockRepository stockRepository;
     @Autowired
@@ -29,11 +32,11 @@ public class AddStockServiceImpl implements AddStockService {
     private static final Logger logger = LoggerFactory.getLogger(FetchStocksServiceImpl.class);
     private TransactionLog transactionLog;
     @Override
-    public StockResponse processRequest(StockMapper stockMapper, Headers requestHeaders) {
+    public StockResponse processRequest(StockMapper stockMapper, Headers requestHeaders,Map<String,String> passRequestHeaders) {
         estkErrorList = new ArrayList<>();
-        transactionLog = new TransactionLog("fetchStocksV1", "fetchStocksV1", "Service");
+        transactionLog = new TransactionLog("StocksV1", "addStocksV1", "Service");
         Map<String, String> extendedProperties = new HashMap<>();
-        List<Stock> filteredList;
+
         //region transaction log population
         String methodName = new Object() {
         }.getClass().getEnclosingMethod().getName();
@@ -47,11 +50,13 @@ public class AddStockServiceImpl implements AddStockService {
         //endregion
         try {
             Stock s = stockRepository.save(new Stock(stockMapper.getCode(), stockMapper.getStockPrice()));
-            if (s != null) {
-                if (updateStockServiceSac.updateStockService(stockMapper)) {
+            if ( updateStockServiceSac.updateStockService(stockMapper,passRequestHeaders)) {
+                   extendedProperties.put("Saved Record:",s.toString());
+                    transactionLog.setStatus(AppConstants.SUCCESS);
                     return new StockResponse(true);
                 }
-            }
+            extendedProperties.put("Saved Record:","None");
+             transactionLog.setStatus(AppConstants.FAIL);
             return new StockResponse(false);
         }
     catch(Exception e)
@@ -59,6 +64,8 @@ public class AddStockServiceImpl implements AddStockService {
         throw new RuntimeException(e);
     }
         finally{
+            transactionLog.setExtendedProperties(extendedProperties);
+            logger.info(transactionLog.toString());
         }
     }
 }

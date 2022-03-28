@@ -14,7 +14,6 @@ import com.market.stock.domain.validator.StockValidator;
 import com.market.stock.service.AddStockService;
 import com.market.stock.service.DeleteStocksService;
 import com.market.stock.service.FetchStocksService;
-import com.market.stock.service.Producer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,11 +34,8 @@ public class StockController {
 
     private TransactionLog transactionLog;
     private static final Logger logger = LoggerFactory.getLogger(StockController.class);
-    private final Producer producer;
-    @Autowired
-    StockController(Producer producer) {
-        this.producer = producer;
-    }
+
+
     @Autowired
     private FetchStocksService fetchStockService;
     @Autowired
@@ -71,7 +67,7 @@ public class StockController {
                 transactionLog.setCreationTimeStamp(headers.getEstk_creationtimestamp());
                 //endregion
 
-                response = addStockService.processRequest(new StockMapper(companyCode, request.getStockPrice()),headers);
+                response = addStockService.processRequest(new StockMapper(companyCode, request.getStockPrice()),headers, requestHeaders);
                 return new ResponseEntity<>(response, HttpStatus.CREATED);
             }
             else
@@ -119,6 +115,7 @@ public class StockController {
                //endregion
 
                Date from = new SimpleDateFormat("yyyy-MM-dd").parse(startdate);
+
                Date to = new SimpleDateFormat("yyyy-MM-dd").parse(enddate);
                response = fetchStockService.processRequest(companycode, from, to,headers);
                if(response!=null) {
@@ -155,38 +152,71 @@ public class StockController {
             return ResponseEntity.badRequest().headers(respHeaders).body(responsebody);
         }
         finally {
-            this.producer.sendMessage(transactionLog.toString());
+            logger.info(transactionLog.toString());
         }
 
     }
 
     @DeleteMapping(value = "/api/v1.0/market/stock/delete/{companycode}", produces = {"application/json"})
-    public ResponseEntity<StockResponse> deleteCompanyV1(@PathVariable("companycode") final String companyCode, Error error) {
+    public ResponseEntity deleteCompanyV1(@RequestHeader Map<String,String> requestHeaders,@PathVariable("companycode") final String companyCode, Error error) {
 
         StockResponse response = null;
         List<ErrorMessage> estkErrorList = new ArrayList<>();
-        try {
-            if (companyCode != null) {
-                response = deleteStockService.processRequest(companyCode);
-                String msg = "SuccessIndicator:" + response.getSuccessIndicator();
-                logger.info(msg);
+        Map<String, String> responseHeaders = null;
+        Headers headers = null;
+        HttpHeaders respHeaders = new HttpHeaders();
+        transactionLog = new TransactionLog("StockV1", "deleteStocksV1", "Controller");
 
-            } else {
-                response = mapEmptyInvalidRequest(estkErrorList);
-                return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
-            }
-            if (response.getSuccessIndicator().equals(Boolean.TRUE) && CommonUtility.isListEmpty(estkErrorList)) {
-                return new ResponseEntity<>(response, HttpStatus.OK);
-            } else {
-                if (response.getErrorMessages()!=null) {
-                    return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+        try{
+            if(StockValidator.areHeadersValid(requestHeaders)) {
+                headers = mapHeaders(requestHeaders);
+                responseHeaders = mapHeadersToObject(requestHeaders);
+                respHeaders.setAll(responseHeaders);
+                //region transaction log population
+                String methodName = new Object() {
+                }.getClass().getEnclosingMethod().getName();
+                transactionLog.setMethodName(methodName);
+                transactionLog.setRequestLog(requestHeaders.toString());
+                transactionLog.setErrorcode("NONE");
+                transactionLog.setTransactionId(headers.getEstk_transactionID());
+                transactionLog.setMessageId(headers.getEstk_messageID());
+                transactionLog.setSessionId(headers.getEstk_sessionID());
+                transactionLog.setCreationTimeStamp(headers.getEstk_creationtimestamp());
+                if (companyCode != null) {
+                    response = deleteStockService.processRequest(companyCode, headers);
+                    String msg = "SuccessIndicator:" + response.getSuccessIndicator();
+                    transactionLog.setStatus(AppConstants.SUCCESS);
+
                 } else {
-                    return new ResponseEntity<>(response, HttpStatus.ACCEPTED);
+                    response = mapEmptyInvalidRequest(estkErrorList);
+                    transactionLog.setStatus(AppConstants.FAIL);
+
+
+                    return  ResponseEntity.badRequest().headers(respHeaders).body(response);
                 }
+                if (response.getSuccessIndicator().equals(Boolean.TRUE) && CommonUtility.isListEmpty(estkErrorList)) {
+
+                    return  ResponseEntity.ok().headers(respHeaders).body(response);
+                } else {
+                    if (response.getErrorMessages() != null) {
+                        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+                    } else {
+
+                        return  ResponseEntity.ok().headers(respHeaders).body(response);
+                    }
+                }
+            }
+            else{
+                ErrorMessage errorMessage= new ErrorMessage();
+                errorMessage.setErrorDef("Headers Mismatch");
+                transactionLog.setStatus(AppConstants.FAIL);
+                logger.error(transactionLog.toString());
+                return ResponseEntity.badRequest().headers(respHeaders).body(errorMessage);
+
             }
         } catch (Exception e) {
             response = mapInternalServerException(e, estkErrorList);
-            return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.internalServerError().headers(respHeaders).body(response);
         }
 
     }

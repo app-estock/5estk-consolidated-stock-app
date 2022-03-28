@@ -1,36 +1,37 @@
 package com.market.stock.dao.entities;
 
-
-
 import com.market.stock.common.CommonUtility;
 import com.market.stock.common.DateTime;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.annotation.PersistenceConstructor;
-import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.data.mongodb.core.mapping.Field;
+import org.hibernate.annotations.CreationTimestamp;
 
+
+import javax.persistence.*;
 import java.sql.Timestamp;
 import java.util.Date;
 
-
-@Document(collection="stock")
+@Entity
+@Table(name="stock")
 public class Stock {
     @Id
-    private String Id;
-    @Field(name="companycode")
+    @GeneratedValue(strategy= GenerationType.AUTO)
+    private Integer Id;
+    @Column(name="companycode")
     private String companyCode;
-    @Field(name="stockprice")
+    @Column(name="stockprice")
     private double price;
-    @Field(name="createdDate")
-    @CreatedDate
+    @CreationTimestamp
+    @Column(name="createdDate")
     private Date createdDate;
-    @Field(name="createdTime")
+
+    @Column(name="createdTime")
     private String createdTime;
 
 
+    public Stock() {
+        super();
+    }
 
-    @PersistenceConstructor
+
     public Stock(String companyCode)  {
         this.companyCode = companyCode;
 
@@ -42,11 +43,12 @@ public class Stock {
         this.createdDate =datetime.getDate();
         this.createdTime=datetime.getTime();
     }
-    public String getId() {
+
+    public Integer getId() {
         return Id;
     }
 
-    public void setId(String id) {
+    public void setId(Integer id) {
         Id = id;
     }
 
